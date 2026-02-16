@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Result</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes scaleIn {
+            0% {
+                transform: scale(0);
+                opacity: 0;
+            }
+
+            80% {
+                transform: scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .animate-pop {
+            animation: scaleIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white rounded-xl shadow-lg overflow-hidden border border-slate-200">
+
+        {% if status == "success" %}
+        <!-- Success Content -->
+        <div class="p-8 text-center">
+            <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pop">
+                <span class="material-icons text-5xl text-green-600">check_circle</span>
+            </div>
+
+            <h1 class="text-2xl font-bold text-slate-900 mb-2">Verified Successfully</h1>
+            <p class="text-slate-500 text-sm mb-6">Welcome, your session details are below.</p>
+
+            <div class="bg-slate-50 rounded-lg p-4 text-left border border-slate-200 space-y-3">
+                <div class="flex justify-between">
+                    <span class="text-xs font-medium text-slate-500 uppercase">Participant</span>
+                    <span class="text-sm font-semibold text-slate-900">{{ name }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-xs font-medium text-slate-500 uppercase">Phone</span>
+                    <span class="text-sm font-mono text-slate-700">{{ phone }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-xs font-medium text-slate-500 uppercase">Plan</span>
+                    <span class="text-sm font-semibold text-slate-900">{{ plan }}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-xs font-medium text-slate-500 uppercase">Duration</span>
+                    <span class="text-sm font-semibold text-blue-600">{{ duration }} Mins</span>
+                </div>
+                <div class="pt-3 border-t border-slate-200 flex justify-between">
+                    <span class="text-xs font-medium text-slate-500 uppercase">Transaction ID</span>
+                    <span class="text-xs font-mono text-slate-600">{{ transaction_id }}</span>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                <!-- Start Timer Form -->
+                <form id="startTimerForm" class="mt-4">
+                    <input type="hidden" name="name" value="{{ name }}">
+                    <input type="hidden" name="phone" value="{{ phone }}">
+                    <input type="hidden" name="transaction_id" value="{{ transaction_id }}">
+                    <input type="hidden" name="duration" value="{{ duration }}">
+
+                    <button type="submit" id="startTimerBtn"
+                        class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg shadow-md transition-all flex items-center justify-center">
+                        <span class="material-icons text-sm mr-2">timer</span> Start {{ duration }} Min Timer
+                    </button>
+                </form>
+                <div id="timerMessage" class="hidden mt-3 text-sm font-medium"></div>
+            </div>
+
+            <script>
+                document.getElementById('startTimerForm').addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    const btn = document.getElementById('startTimerBtn');
+                    const msg = document.getElementById('timerMessage');
+                    const formData = new FormData(e.target);
+                    const tid = formData.get('transaction_id');
+                    const durationStr = formData.get('duration');
+
+                    // Optimistic UI Update
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="material-icons text-sm mr-2 animate-spin">refresh</span> Starting...';
+
+                    try {
+                        // Attempt to call server
+                        let response;
+                        let result;
+                        let serverSuccess = false;
+
+                        try {
+                            // Only try fetch if online using AbortController for quick timeout? 
+                            // Or just let it fail.
+                            response = await fetch('/start_timer', {
+                                method: 'POST',
+                                body: formData
+                            });
+                            if (response.ok) {
+                                result = await response.json();
+                                serverSuccess = true;
+                            } else {
+                                result = await response.json();
+                                throw new Error(result.message || 'Server Error');
+                            }
+                        } catch (err) {
+                            console.log("Server unreachable or error:", err);
+                            // Fallback logic could go here if we want to allow starting timer OFFLINE?
+                            // But usually we need server to validate access. 
+                            // User asked for "timer continues to work... if server crashes".
+                            // This implies the timer ALREADY started.
+                            // If user clicks start while offline, maybe we should block or allow?
+                            // Let's assume we BLOCK starting new sessions if offline, 
+                            // but we RESTORE existing ones.
+
+                            // Re-throwing to show error for now, as new session requires server validation.
+                            throw err;
+                        }
+
+                        msg.classList.remove('hidden');
+                        if (serverSuccess) {
+                            msg.className = "mt-3 text-sm font-medium text-green-600";
+                            msg.textContent = "Timer Started Successfully!";
+                            btn.innerHTML = '<span class="material-icons text-sm mr-2">check</span> Started';
+
+                            // SAVE KEY TO LOCAL STORAGE
+                            if (result.restore_key) {
+                                localStorage.setItem(`restore_key_${tid}`, result.restore_key);
+                            }
+
+                            // Start Client Side Countdown
+                            // PREFER Server provided end time, but fallback to local calcs
+                            let endTimeIso = result.end_time;
+
+                            // Save End Time to LocalStorage for Offline Persistance
+                            localStorage.setItem(`session_end_time_${tid}`, endTimeIso);
+                            localStorage.setItem(`session_duration_${tid}`, result.duration);
+
+                            startCountdown(endTimeIso);
+                        }
+
+                    } catch (error) {
+                        msg.classList.remove('hidden');
+                        msg.className = "mt-3 text-sm font-medium text-red-600";
+                        msg.textContent = "Error: " + error.message;
+                        btn.disabled = false;
+                        btn.innerHTML = '<span class="material-icons text-sm mr-2">timer</span> Retry Start';
+                    }
+                });
+
+                // Auto-Restore Timer from LocalStorage on Load
+                // This runs even if server is down!
+                (function () {
+                    const tid = "{{ transaction_id }}"; // Jinja2 Variable
+
+                    const storedEndTime = localStorage.getItem(`session_end_time_${tid}`);
+
+                    if (storedEndTime) {
+                        // We have an active local session!
+                        console.log("Restoring session from LocalStorage");
+                        const form = document.getElementById('startTimerForm');
+                        const btn = document.getElementById('startTimerBtn');
+
+                        // Hide button / Show countdown immediately
+                        startCountdown(storedEndTime);
+                    }
+                })();
+
+                function startCountdown(endTimeIso) {
+                    const btn = document.getElementById('startTimerBtn');
+                    const form = document.getElementById('startTimerForm');
+
+                    // If form exists (it might not if we already replaced it), modify it
+                    if (form) {
+                        form.innerHTML = `
+                            <div class="mt-6 text-center">
+                                <div class="text-xs text-slate-500 uppercase font-semibold mb-1">Time Remaining</div>
+                                <div id="countdownDisplay" class="text-4xl font-mono font-bold text-blue-600">
+                                    --:--
+                                </div>
+                                <div class="text-xs text-slate-400 mt-2">Session ends at ${new Date(endTimeIso).toLocaleTimeString()}</div>
+                            </div>
+                        `;
+                    }
+
+                    const endTime = new Date(endTimeIso).getTime();
+
+                    // Update function
+                    const updateTimer = () => {
+                        const now = new Date().getTime();
+                        const distance = endTime - now;
+
+                        const display = document.getElementById('countdownDisplay');
+                        if (!display) return; // Element removed?
+
+                        if (distance < 0) {
+                            clearInterval(window.timerInterval); // Use global/window var to track
+                            display.innerHTML = "SESSION ENDED";
+                            display.classList.replace('text-blue-600', 'text-red-600');
+
+                            // Cleanup LocalStorage? Maybe keep for history or clear on explicit exit.
+                            // localStorage.removeItem(`session_end_time_${tid}`); 
+                            return;
+                        }
+
+                        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                        display.innerHTML =
+                            (minutes < 10 ? "0" + minutes : minutes) + ":" +
+                            (seconds < 10 ? "0" + seconds : seconds);
+                    };
+
+                    // Start Interval
+                    updateTimer(); // Run once immediately
+                    window.timerInterval = setInterval(updateTimer, 1000);
+                }
+            </script>
+        </div>
+
+        {% elif status == "check_restore" %}
+        <!-- Restore Check State (Initially Hidden or Loading) -->
+        <div class="p-8 text-center" id="restoreContainer">
+            <div class="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4">
+            </div>
+            <h2 class="text-lg font-semibold text-slate-700">Checking Session...</h2>
+            <p class="text-sm text-slate-500">Verifying your browser key...</p>
+        </div>
+
+        <!-- Hidden Inputs for Restore Logic -->
+        <input type="hidden" id="restoreTid" value="{{ transaction_id }}">
+
+        <script>
+            // Auto-run on load
+            (async function () {
+                const tid = document.getElementById('restoreTid').value;
+                const key = localStorage.getItem(`restore_key_${tid}`);
+                const container = document.getElementById('restoreContainer');
+
+                if (!key) {
+                    container.innerHTML = `
+                        <div class="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <span class="material-icons text-5xl text-yellow-600">lock_clock</span>
+                        </div>
+                        <h1 class="text-2xl font-bold text-slate-900 mb-2">Session Active</h1>
+                        <p class="text-slate-500 text-sm mb-6">This session is currently running on another device or browser.</p>
+                         <div class="bg-yellow-50 text-yellow-700 p-4 rounded-lg text-xs border border-yellow-100">
+                             If this is you, please continue on the original tab.
+                        </div>
+                    `;
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/verify_restore', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ transaction_id: tid, restore_key: key })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok && result.status === 'restored') {
+                        // Success! Restore the Timer UI
+                        const durationMinutes = result.duration;
+                        const endTimeIso = result.end_time;
+
+                        // Inject the timer UI directly
+                        container.innerHTML = `
+                             <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pop">
+                                <span class="material-icons text-5xl text-green-600">check_circle</span>
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-900 mb-2">Session Restored</h1>
+                            
+                            <div class="mt-6 text-center">
+                                <div class="text-xs text-slate-500 uppercase font-semibold mb-1">Time Remaining</div>
+                                <div id="countdownDisplay" class="text-4xl font-mono font-bold text-blue-600">
+                                    --:--
+                                </div>
+                                 <div class="text-xs text-slate-400 mt-2">Session ends at ${new Date(endTimeIso).toLocaleTimeString()}</div>
+                            </div>
+                        `;
+
+                        startCountdown(endTimeIso);
+
+                    } else {
+                        container.innerHTML = `
+                             <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <span class="material-icons text-5xl text-red-600">running_with_errors</span>
+                            </div>
+                            <h1 class="text-2xl font-bold text-slate-900 mb-2">Restore Failed</h1>
+                            <p class="text-slate-500 text-sm mb-6">${result.message || 'Session expired or invalid key.'}</p>
+                        `;
+                    }
+
+                } catch (e) {
+                    container.innerHTML = `
+                        <h1 class="text-xl font-bold text-red-600">Network Error</h1>
+                        <p class="text-sm tex-slate-500">Could not verify session.</p>
+                    `;
+                }
+            })();
+
+            function startCountdown(endTimeIso) {
+                const endTime = new Date(endTimeIso).getTime();
+
+                const timerInterval = setInterval(() => {
+                    const now = new Date().getTime();
+                    const distance = endTime - now;
+
+                    if (distance < 0) {
+                        clearInterval(timerInterval);
+                        const display = document.getElementById('countdownDisplay');
+                        if (display) {
+                            display.innerHTML = "SESSION ENDED";
+                            display.classList.replace('text-blue-600', 'text-red-600');
+                        }
+                        return;
+                    }
+
+                    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+                    const display = document.getElementById('countdownDisplay');
+                    if (display) {
+                        display.innerHTML =
+                            (minutes < 10 ? "0" + minutes : minutes) + ":" +
+                            (seconds < 10 ? "0" + seconds : seconds);
+                    }
+
+                }, 1000);
+            }
+        </script>
+
+        {% else %}
+        <!-- Error Content -->
+        <div class="p-8 text-center">
+            <div class="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-pop">
+                <span class="material-icons text-5xl text-red-600">error</span>
+            </div>
+
+            <h1 class="text-2xl font-bold text-slate-900 mb-2">Verification Failed</h1>
+            <p class="text-slate-500 text-sm mb-6">{{ message }}</p>
+
+            <div class="bg-red-50 text-red-700 p-4 rounded-lg text-xs border border-red-100">
+                Please try scanning the QR code again or contact the administrator.
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <div id="offlineIndicator"
+        class="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg text-xs font-medium hidden">
+        You are offline. Timer is running locally.
+    </div>
+
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(err => {
+                        console.log('ServiceWorker registration failed: ', err);
+                    });
+            });
+        }
+
+        // Offline Indicator
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        function updateOnlineStatus() {
+            const indicator = document.getElementById('offlineIndicator');
+            if (!navigator.onLine) {
+                indicator.classList.remove('hidden');
+            } else {
+                indicator.classList.add('hidden');
+            }
+        }
+        updateOnlineStatus(); // Initial check
+    </script>
+</body>
+
+</html>

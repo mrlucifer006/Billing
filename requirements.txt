@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+gspread
+oauth2client
+qrcode[pil]
+neonize
+protobuf>=5.0.0
+jinja2
+python-multipart
+cryptography

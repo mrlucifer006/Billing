@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.env
+venv/
+env/
+credentials.json
+authorized_user.json
+my_session.sqlite3
+billing.db
+server_state.json
+generated_qrs/
+pending_keys.json
+sessions.json
+debug_output.txt
+debug_fields.txt

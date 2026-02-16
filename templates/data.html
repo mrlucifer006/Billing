@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Data | GDC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900">Event Statistics</h1>
+                <p class="text-slate-500">Total collection and participant overview</p>
+            </div>
+            <div class="flex gap-3">
+                <a href="/health"
+                    class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
+                    <span class="material-icons text-sm mr-2">monitor_heart</span> Health
+                </a>
+                <a href="/"
+                    class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
+                    <span class="material-icons text-sm mr-2">home</span> Home
+                </a>
+            </div>
+        </header>
+
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+
+            <!-- Total Participants -->
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <div class="text-slate-500 text-sm font-semibold uppercase tracking-wide mb-1">Total Participants
+                    </div>
+                    <div class="text-5xl font-bold text-indigo-600 tracking-tight">{{ total_participants }}</div>
+                    <div class="mt-2 text-xs text-slate-400">All-time entries</div>
+                </div>
+                <div class="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center">
+                    <span class="material-icons text-4xl text-indigo-500">groups</span>
+                </div>
+            </div>
+
+            <!-- Total Revenue -->
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <div class="text-slate-500 text-sm font-semibold uppercase tracking-wide mb-1">Total Collection
+                    </div>
+                    <div class="text-5xl font-bold text-emerald-600 tracking-tight">₹ {{ total_revenue }}</div>
+                    <div class="mt-2 text-xs text-slate-400">Total revenue generated</div>
+                </div>
+                <div class="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center">
+                    <span class="material-icons text-4xl text-emerald-500">payments</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 flex items-start">
+            <span class="material-icons text-blue-500 mt-0.5 mr-3">info</span>
+            <div>
+                <h4 class="text-sm font-bold text-blue-900">Data Source</h4>
+                <p class="text-sm text-blue-800 mt-1">
+                    These statistics are real-time aggregations from the linked Google Sheet.
+                </p>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>

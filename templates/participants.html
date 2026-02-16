@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Dashboard | GDC</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900 min-h-screen p-6">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900">Live Sessions</h1>
+                <p class="text-slate-500 text-sm">Real-time participant tracking</p>
+            </div>
+            <a href="/"
+                class="bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm flex items-center">
+                <span class="material-icons text-sm mr-2">arrow_back</span> Back to Billing
+            </a>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <div class="text-slate-500 text-xs font-semibold uppercase tracking-wide">Active Participants</div>
+                    <div class="text-3xl font-bold text-slate-900 mt-1" id="activeCount">0</div>
+                </div>
+                <div class="p-3 bg-blue-50 rounded-full text-blue-600">
+                    <span class="material-icons">people</span>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <div class="text-slate-500 text-xs font-semibold uppercase tracking-wide">System Status</div>
+                    <div class="mt-1 flex items-center gap-2">
+                        <span class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="font-bold text-slate-700">Online</span>
+                    </div>
+                </div>
+                <div class="p-3 bg-green-50 rounded-full text-green-600">
+                    <span class="material-icons">dns</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Participants Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50 border-b border-slate-200">
+                        <tr>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Name
+                            </th>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Phone
+                            </th>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Plan
+                            </th>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Start
+                                Time</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                Remaining</th>
+                            <th class="px-6 py-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="sessionsBody" class="divide-y divide-slate-100">
+                        <!-- Rows injected via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden p-12 text-center text-slate-500">
+                <span class="material-icons text-4xl text-slate-300 mb-2">event_busy</span>
+                <p>No active sessions currently.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function fetchSessions() {
+            try {
+                const response = await fetch('/api/sessions');
+                if (!response.ok) return;
+                const sessions = await response.json();
+                renderTable(sessions);
+            } catch (e) {
+                console.error("Failed to fetch sessions", e);
+            }
+        }
+
+        function formatTime(seconds) {
+            if (seconds <= 0) return "00:00";
+            const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+            const s = (seconds % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function renderTable(sessions) {
+            const tbody = document.getElementById('sessionsBody');
+            const emptyState = document.getElementById('emptyState');
+            const activeCount = document.getElementById('activeCount');
+
+            tbody.innerHTML = '';
+
+            // Count actual active sessions
+            const active = sessions.filter(s => s.remaining_seconds > 0).length;
+            activeCount.innerText = active;
+
+            if (sessions.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+
+                sessions.forEach(session => {
+                    const row = document.createElement('tr');
+                    row.className = "hover:bg-slate-50 transition-colors";
+
+                    // Determine Status Style
+                    let statusClass = "bg-slate-100 text-slate-600";
+                    let timerColor = "text-blue-600";
+
+                    if (session.status === "Warning") {
+                        statusClass = "bg-yellow-100 text-yellow-800";
+                        timerColor = "text-yellow-600";
+                    }
+                    if (session.status === "Ended") {
+                        statusClass = "bg-red-100 text-red-800";
+                        timerColor = "text-red-600";
+                    }
+                    if (session.status === "Active") {
+                        statusClass = "bg-green-100 text-green-800";
+                        timerColor = "text-blue-600";
+                    }
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-medium text-slate-900">${session.name || '-'}</td>
+                        <td class="px-6 py-4 text-slate-500 font-mono text-xs">${session.phone}</td>
+                        <td class="px-6 py-4 text-slate-500">${session.duration}m</td>
+                        <td class="px-6 py-4 text-slate-500 font-mono text-xs">${session.start_time}</td>
+                        <td class="px-6 py-4 font-mono font-bold ${timerColor}">
+                            ${formatTime(session.remaining_seconds)}
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusClass}">
+                                ${session.status}
+                            </span>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        }
+
+        // Initial Call
+        fetchSessions();
+
+        // Refresh every 1 second
+        setInterval(fetchSessions, 1000);
+    </script>
+</body>
+
+</html>
