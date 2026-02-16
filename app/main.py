@@ -314,14 +314,14 @@ def process_entry_task(name: str, phone: str, transaction_id: str, plan_selectio
     
     # Parse Plan
     try:
-        if plan_selection == "ps5_50":
+        if plan_selection == "premium_50":
             amount = 50
             duration = 15
-            plan_name = "PS5"
-        elif plan_selection == "laptop_40":
+            plan_name = "Premium"
+        elif plan_selection == "standard_40":
             amount = 40
             duration = 15
-            plan_name = "Laptop"
+            plan_name = "Standard"
         else:
             # Fallback or Error
             amount = 0
@@ -543,6 +543,12 @@ async def verify_restore(request: Request):
 @app.get("/participants", response_class=HTMLResponse)
 async def view_participants(request: Request):
     return templates.TemplateResponse("participants.html", {"request": request})
+
+@app.get("/health", response_class=HTMLResponse)
+async def view_health(request: Request):
+    auth_cookie = request.cookies.get("health_auth")
+    authenticated = auth_cookie == "true"
+    return templates.TemplateResponse("health.html", {"request": request, "authenticated": authenticated})
 
 @app.post("/health/login", response_class=HTMLResponse)
 async def health_login(request: Request, username: str = Form(...), password: str = Form(...)):
