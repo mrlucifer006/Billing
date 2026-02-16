@@ -1,14 +1,14 @@
-# GDC Billing System - Developer Guide
+# Ticket System - Developer Guide
 
-Welcome to the Game Development Cell (GDC) Billing System codebase. This guide is designed to help new developers understand the architecture, setup the project, and contribute effectively.
+Welcome to the Ticket System codebase (formerly GDC Billing System). This guide is designed to help new developers understand the architecture, setup the project, and contribute effectively.
 
 ## 1. Project Overview
 
-The GDC Billing System is a web-based application used to manage payments and play-time for the gaming setup. It handles:
--   **User Entries**: Recording participant details, payment mode (Cash/Online), and selected plan.
+The Ticket System is a web-based application used to manage event ticketing and entry. It handles:
+-   **User Entries**: Recording participant details, payment mode (Cash/Online), and selected ticket type.
 -   **QR Code Generation**: Generating secure, encrypted QR codes for entry verification.
--   **Verification**: Scanning QR codes to verify transactions and start play sessions.
--   **Session Management**: Tracking active play sessions and sending WhatsApp notifications for time expiry.
+-   **Verification**: Scanning QR codes to verify transactions and confirm entry.
+-   **Session Management**: Tracking active sessions and sending WhatsApp notifications.
 -   **Data Logging**: Automatically saving all transaction details to a Google Sheet.
 
 ## 2. Technology Stack
@@ -39,7 +39,7 @@ Billing/
 │   ├── scan_result.html     # Verification result & timer page
 │   ├── health.html          # Server health dashboard
 │   ├── data.html            # Financial data dashboard
-│   └── participants.html    # Live participants view
+│   ├── participants.html    # Live participants view
 ├── static/                  # Static assets (CSS/JS if needed locally)
 ├── generated_qrs/           # Temporary storage for generated QR images
 ├── credentials.json         # Google Cloud Service Account credentials (DO NOT COMMIT)
@@ -52,7 +52,7 @@ Billing/
 ## 4. Key Components & Workflows
 
 ### A. Submission Flow (`/submit_entry`)
-1.  **Frontend**: User selects Payment Mode (Online/Cash) and Plan (PS5/Laptop).
+1.  **Frontend**: User selects Payment Mode (Online/Cash) and Ticket Type (Premium/Standard).
 2.  **Validation**:
     -   **Online**: Requires a Transaction ID.
     -   **Cash**: Backend generates a unique ID (`CASH-YYYYMMDD...`).
@@ -127,4 +127,4 @@ The application expects the following columns in order (A-I):
 -   **Template Not Found**: Ensure you are running `run.py` from the root directory.
 
 ---
-*Maintained by Game Development Cell Tech Team*
+*Maintained by Tech Team*
