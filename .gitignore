@@ -13,3 +13,4 @@ pending_keys.json
 sessions.json
 debug_output.txt
 debug_fields.txt
+secret.key
