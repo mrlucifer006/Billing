@@ -127,4 +127,4 @@ The application expects the following columns in order (A-I):
 -   **Template Not Found**: Ensure you are running `run.py` from the root directory.
 
 ---
-*Maintained by Tech Team*
+*Maintained by sanjai M S*
